@@ -1,0 +1,116 @@
+import json
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render, reverse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import Attendance, Session, Subject 
+
+# Create your views here.
+
+
+def login_page(request):
+    if request.user.is_authenticated:
+        if request.user.user_type == '1':
+            return redirect(reverse("admin_home"))
+        elif request.user.user_type == '2':
+            return redirect(reverse("staff_home"))
+        else:
+            return redirect(reverse("student_home"))
+    return render(request, 'main_app/login.html')
+
+
+def doLogin(request, **kwargs):
+    if request.method != 'POST':
+        return HttpResponse("<h4>Denied</h4>")
+    else:
+        #Authenticate
+        user = authenticate(request, username=request.POST.get('email'), password=request.POST.get('password'))
+        if user != None:
+            login(request, user)
+            
+            # Handle "Remember Me" functionality
+            remember_me = request.POST.get('remember')
+            if remember_me:
+                # Set session to expire when browser closes = False
+                # Session will last for 30 days
+                request.session.set_expiry(30 * 24 * 60 * 60)  # 30 days in seconds
+            else:
+                # Set session to expire when browser closes
+                request.session.set_expiry(0)
+            
+            if user.user_type == '1':
+                return redirect(reverse("admin_home"))
+            elif user.user_type == '2':
+                return redirect(reverse("staff_home"))
+            else:
+                return redirect(reverse("student_home"))
+        else:
+            messages.error(request, "Invalid details")
+            return redirect("/")
+
+
+
+def logout_user(request):
+    if request.user != None:
+        logout(request)
+    return redirect("/")
+
+
+@csrf_exempt
+def get_attendance(request):
+    subject_id = request.POST.get('subject')
+    session_id = request.POST.get('session')
+    try:
+        subject = get_object_or_404(Subject, id=subject_id)
+        session = get_object_or_404(Session, id=session_id)
+        attendance = Attendance.objects.filter(subject=subject, session=session)
+        attendance_list = []
+        for attd in attendance:
+            data = {
+                    "id": attd.id,
+                    "attendance_date": str(attd.date),
+                    "session": attd.session.id
+                    }
+            attendance_list.append(data)
+        return JsonResponse(json.dumps(attendance_list), safe=False)
+    except Exception as e:
+        return None
+
+
+def showFirebaseJS(request):
+    data = """
+    // Give the service worker access to Firebase Messaging.
+// Note that you can only use Firebase Messaging here, other Firebase libraries
+// are not available in the service worker.
+importScripts('https://www.gstatic.com/firebasejs/7.22.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/7.22.1/firebase-messaging.js');
+
+// Initialize the Firebase app in the service worker by passing in
+// your app's Firebase config object.
+// https://firebase.google.com/docs/web/setup#config-object
+firebase.initializeApp({
+    apiKey: "REPLACE_WITH_FIREBASE_API_KEY",
+    authDomain: "REPLACE_WITH_FIREBASE_AUTH_DOMAIN",
+    databaseURL: "REPLACE_WITH_FIREBASE_DATABASE_URL",
+    projectId: "REPLACE_WITH_FIREBASE_PROJECT_ID",
+    storageBucket: "REPLACE_WITH_FIREBASE_STORAGE_BUCKET",
+    messagingSenderId: "REPLACE_WITH_FIREBASE_MESSAGING_SENDER_ID",
+    appId: "REPLACE_WITH_FIREBASE_APP_ID",
+    measurementId: "REPLACE_WITH_FIREBASE_MEASUREMENT_ID"
+});
+
+// Retrieve an instance of Firebase Messaging so that it can handle background
+// messages.
+const messaging = firebase.messaging();
+messaging.setBackgroundMessageHandler(function (payload) {
+    const notification = JSON.parse(payload);
+    const notificationOption = {
+        body: notification.body,
+        icon: notification.icon
+    }
+    return self.registration.showNotification(payload.notification.title, notificationOption);
+});
+    """
+    return HttpResponse(data, content_type='application/javascript')
