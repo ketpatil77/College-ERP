@@ -9,7 +9,7 @@
 [![Django](https://img.shields.io/badge/Django-Framework-green?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-[Live Demo](https://syncx.pythonanywhere.com) • [Report Bug](https://github.com/ketpatil77/College-ERP/issues) • [Request Feature](https://github.com/ketpatil77/College-ERP/issues)
+[Live Demo](https://syncx.pythonanywhere.com) • [Architecture](docs/architecture.md) • [Report Bug](https://github.com/ketpatil77/College-ERP/issues) • [Request Feature](https://github.com/ketpatil77/College-ERP/issues)
 
 </div>
 
